@@ -30,22 +30,7 @@
    This is an example sketch on how to use this library
 */
 
-#include <HX711_ADC.h>
-
-#if defined(ESP8266)|| defined(ESP32) || defined(AVR)
-#include <EEPROM.h>
-#endif
-
-//pins:
-const int HX711_dout = 4; //mcu > HX711 dout pin
-const int HX711_sck = 5; //mcu > HX711 sck pin
-
-//HX711 constructor:
-HX711_ADC LoadCell(HX711_dout, HX711_sck);
-
-const int calVal_eepromAdress = 0;
-const int tareOffsetVal_eepromAdress = 4;
-unsigned long t = 0;
+#include "config.h"
 
 void setup() {
   Serial.begin(57600); delay(10);
@@ -54,19 +39,21 @@ void setup() {
 
   LoadCell.begin();
   float calibrationValue; // calibration value (see example file "Calibration.ino")
-  //calibrationValue = 696.0; // uncomment this if you want to set the calibration value in the sketch
 
 #if defined(ESP8266)|| defined(ESP32)
   EEPROM.begin(512);
 #endif
-
+#if CALIBRATE
+  calibrationValue = 696.0; // uncomment this if you want to set the calibration value in the sketch
+  boolean _tare = true;     //set this to false if you don't want tare to be performed in the next step
+#else
   EEPROM.get(calVal_eepromAdress, calibrationValue); // uncomment this if you want to fetch the calibration value from eeprom
-
-  //restore the zero offset value from eeprom:
+    //restore the zero offset value from eeprom:
   long tare_offset = 0;
   EEPROM.get(tareOffsetVal_eepromAdress, tare_offset);
   LoadCell.setTareOffset(tare_offset);
   boolean _tare = false; //set this to false as the value has been resored from eeprom
+#endif
 
   unsigned long stabilizingtime = 3000; // preciscion right after power-up can be improved by adding a few seconds of stabilizing time
   LoadCell.start(stabilizingtime, _tare);
@@ -78,13 +65,17 @@ void setup() {
     LoadCell.setCalFactor(calibrationValue); // set calibration value (float)
     Serial.println("Startup is complete");
   }
-  // while (!LoadCell.update());
-  // calibrate(); //start calibration procedure
+#if CALIBRATE
+  while (!LoadCell.update());
+  calibrate(); //start calibration procedure
+#else
+
+#endif
 }
 
 void loop() {
   static boolean newDataReady = 0;
-  const int serialPrintInterval = 250; //increase value to slow down serial print activity
+  const int serialPrintInterval = 500; //increase value to slow down serial print activity
 
   // check for new data/start next conversion:
   if (LoadCell.update()) newDataReady = true;
