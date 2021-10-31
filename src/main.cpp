@@ -30,12 +30,16 @@
    This is an example sketch on how to use this library
 */
 
-#include "config.h"
+#include "helpers.h"
 
 void setup() {
-  Serial.begin(57600); delay(10);
-  Serial.println();
-  Serial.println("Starting...");
+  // Set console baud rate
+  SerialMon.begin(57600, SERIAL_8N1);
+  delay(10);
+  DEBUG_PRINTLN("");
+  DEBUG_PRINTLN("Wait...");
+
+  initMqtt();
 
   LoadCell.begin();
   float calibrationValue; // calibration value (see example file "Calibration.ino")
@@ -77,6 +81,8 @@ void loop() {
   static boolean newDataReady = 0;
   const int serialPrintInterval = 500; //increase value to slow down serial print activity
 
+  loopMqtt();
+  
   // check for new data/start next conversion:
   if (LoadCell.update()) newDataReady = true;
 
